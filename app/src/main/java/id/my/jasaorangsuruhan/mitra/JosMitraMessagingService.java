@@ -16,7 +16,7 @@ import com.google.firebase.messaging.RemoteMessage;
 
 public class JosMitraMessagingService extends FirebaseMessagingService {
     // Versioned channel ensures Android applies the new JOS sound on existing installations.
-    public static final String CHANNEL_ID = "jos_mitra_orders_v2";
+    public static final String CHANNEL_ID = "jos_mitra_orders_v3";
 
     @Override public void onNewToken(String token) {
         getSharedPreferences("jos_mitra", MODE_PRIVATE).edit().putString("fcm_token", token).apply();
@@ -35,11 +35,16 @@ public class JosMitraMessagingService extends FirebaseMessagingService {
         open.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pending = PendingIntent.getActivity(this, 0, open,
             PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+        Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.jos_order_alert);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title).setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_MAX).setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setAutoCancel(true).setDefaults(Notification.DEFAULT_VIBRATE).setContentIntent(pending).build();
+            .setAutoCancel(true).setDefaults(Notification.DEFAULT_VIBRATE).setContentIntent(pending);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            builder.setSound(soundUri).setVibrate(new long[]{0, 350, 180, 350});
+        }
+        Notification notification = builder.build();
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.notify((int) (System.currentTimeMillis() & 0x7fffffff), notification);
     }

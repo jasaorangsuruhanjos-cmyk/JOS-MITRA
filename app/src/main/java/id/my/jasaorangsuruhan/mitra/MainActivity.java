@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.media.AudioAttributes;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.GeolocationPermissions;
@@ -171,6 +172,12 @@ public class MainActivity extends Activity {
             android.app.NotificationChannel channel = new android.app.NotificationChannel(
                 JosMitraMessagingService.CHANNEL_ID, "Pesanan JOS Mitra",
                 android.app.NotificationManager.IMPORTANCE_HIGH);
+            Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.jos_order_alert);
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+            channel.setSound(soundUri, audioAttributes);
             channel.setDescription("Notifikasi pesanan baru untuk Mitra JOS");
             channel.enableVibration(true);
             channel.setVibrationPattern(new long[]{0, 350, 180, 350});

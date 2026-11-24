@@ -5,6 +5,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
@@ -13,7 +15,8 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 public class JosMitraMessagingService extends FirebaseMessagingService {
-    public static final String CHANNEL_ID = "jos_mitra_orders";
+    // Versioned channel ensures Android applies the new JOS sound on existing installations.
+    public static final String CHANNEL_ID = "jos_mitra_orders_v2";
 
     @Override public void onNewToken(String token) {
         getSharedPreferences("jos_mitra", MODE_PRIVATE).edit().putString("fcm_token", token).apply();
@@ -36,7 +39,7 @@ public class JosMitraMessagingService extends FirebaseMessagingService {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title).setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_MAX).setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setAutoCancel(true).setDefaults(Notification.DEFAULT_ALL).setContentIntent(pending).build();
+            .setAutoCancel(true).setDefaults(Notification.DEFAULT_VIBRATE).setContentIntent(pending).build();
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.notify((int) (System.currentTimeMillis() & 0x7fffffff), notification);
     }

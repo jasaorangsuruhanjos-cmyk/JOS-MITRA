@@ -896,7 +896,16 @@ let josMitraInstallTimer=null;
 const josMitraInstallPopup=document.getElementById('josMitraInstallPopup');
 const josMitraInstallBtn=document.getElementById('josMitraInstallBtn');
 const josMitraStandalone=()=>!!window.JOSAndroid||window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+const josMitraIsIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const josMitraApkUrl='https://github.com/jasaorangsuruhanjos-cmyk/JOS-MITRA/releases/download/latest/app-debug.apk';
+if(josMitraIsIOS()){
+  const copy=josMitraInstallPopup?.querySelector('.jos-install-copy');
+  if(copy){
+    copy.querySelector('strong').textContent='Pasang JOS Mitra di iPhone';
+    copy.querySelector('small').textContent='Tambahkan Portal Mitra ke Layar Utama iPhone.';
+  }
+  if(josMitraInstallBtn)josMitraInstallBtn.textContent='Cara Pasang';
+}
 function hideJosMitraInstallPopup(){
   clearTimeout(josMitraInstallTimer);
   josMitraInstallPopup?.classList.remove('show');
@@ -911,6 +920,10 @@ document.getElementById('josMitraInstallClose')?.addEventListener('click',hideJo
 if(josMitraInstallBtn){
   josMitraInstallBtn.addEventListener('click',()=>{
     hideJosMitraInstallPopup();
+    if(josMitraIsIOS()){
+      alert('Cara memasang JOS Mitra di iPhone:\n\n1. Buka Portal Mitra melalui Safari.\n2. Tekan tombol Bagikan (ikon kotak dengan panah ke atas).\n3. Pilih “Tambahkan ke Layar Utama” (Add to Home Screen).\n4. Tekan Tambahkan.\n\nIkon JOS Mitra akan muncul di Layar Utama iPhone.');
+      return;
+    }
     const downloadLink=document.createElement('a');
     downloadLink.href=josMitraApkUrl;
     downloadLink.download='JOS-Mitra.apk';

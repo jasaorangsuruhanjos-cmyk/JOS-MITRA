@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
         requestNotificationPermissionIfNeeded();
         webView.loadUrl("https://mitra.jasaorangsuruhan.my.id/");
         FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
-            getPreferences(MODE_PRIVATE).edit().putString("fcm_token", token).apply();
+            getSharedPreferences("jos_mitra", MODE_PRIVATE).edit().putString("fcm_token", token).apply();
             notifyWebToken(token);
         });
     }
@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
 
     public class JosAndroidBridge {
         @JavascriptInterface public String getFcmToken() {
-            return getPreferences(MODE_PRIVATE).getString("fcm_token", "");
+            return getSharedPreferences("jos_mitra", MODE_PRIVATE).getString("fcm_token", "");
         }
         @JavascriptInterface public void requestNotifications() { runOnUiThread(() -> requestNotificationPermissionIfNeeded()); }
         @JavascriptInterface public void openAppSettings() {

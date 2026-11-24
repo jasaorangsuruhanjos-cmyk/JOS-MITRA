@@ -118,8 +118,7 @@ public class MainActivity extends Activity {
             + "}catch(e){if(m){m.textContent='Gagal mengaktifkan notifikasi: '+(e.message||'Kesalahan tidak diketahui');m.classList.add('err');}if(b)b.textContent='Aktifkan notifikasi di HP';}"
             + "finally{if(b)b.disabled=false;}"
             + "};"
-            + "const saved=JOSAndroid.getFcmToken();if(saved)window.josAndroidFcmToken(saved);
-let attempts=0;const retry=setInterval(async()=>{attempts++;const t=JOSAndroid.getFcmToken();if(t&&typeof currentUser!=='undefined'&&currentUser&&currentUser.id){const ok=await window.__josRegisterNativeFcmToken(t);if(ok||attempts>=180)clearInterval(retry);}else if(attempts>=180)clearInterval(retry);},2000);"
+            + "const saved=JOSAndroid.getFcmToken();if(saved)window.josAndroidFcmToken(saved);\\nlet attempts=0;const retry=setInterval(async()=>{attempts++;const t=JOSAndroid.getFcmToken();if(t&&typeof currentUser!=='undefined'&&currentUser&&currentUser.id){const ok=await window.__josRegisterNativeFcmToken(t);if(ok||attempts>=180)clearInterval(retry);}else if(attempts>=180)clearInterval(retry);},2000);"
             + "})();";
         webView.evaluateJavascript(script, null);
     }

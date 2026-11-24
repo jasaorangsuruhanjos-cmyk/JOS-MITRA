@@ -56,8 +56,8 @@
 </div>
 <div id="josMitraInstallPopup" role="dialog" aria-label="Install aplikasi JOS Mitra">
   <div class="jos-install-icon">📲</div>
-  <div class="jos-install-copy"><strong>Pasang Aplikasi JOS Mitra</strong><small>Akses portal mitra lebih cepat langsung dari layar utama.</small></div>
-  <button class="jos-install-action" id="josMitraInstallBtn" type="button">Install</button>
+  <div class="jos-install-copy"><strong>Pasang Aplikasi JOS Mitra</strong><small>Unduh aplikasi Android JOS Mitra langsung dari sini.</small></div>
+  <button class="jos-install-action" id="josMitraInstallBtn" type="button">Download APK</button>
   <button class="jos-install-close" id="josMitraInstallClose" type="button" aria-label="Tutup">×</button>
 </div>
 <header class="top"><div class="topline"><div class="brand">JOS <span style="font-weight:500">• Portal Mitra</span></div><span class="pill" id="connection">Menghubungkan...</span></div><div class="welcome">BERSAMA JOS, SEMUA PASTI BERES!</div><h1 id="headline">Selamat datang, Mitra</h1><p id="subhead">Ambil pesanan sesuai kemampuan dan jadwal Anda.</p></header>
@@ -867,11 +867,11 @@ boot();
 
 // Popup instalasi JOS Mitra: gunakan prompt asli browser bila tersedia.
 // Jika browser tidak menyediakan prompt otomatis, tampilkan petunjuk pemasangan manual.
-let josMitraDeferredInstall=null;
 let josMitraInstallTimer=null;
 const josMitraInstallPopup=document.getElementById('josMitraInstallPopup');
 const josMitraInstallBtn=document.getElementById('josMitraInstallBtn');
 const josMitraStandalone=()=>!!window.JOSAndroid||window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+const josMitraApkUrl='https://github.com/jasaorangsuruhanjos-cmyk/JOS-MITRA/releases/download/latest/app-debug.apk';
 function hideJosMitraInstallPopup(){
   clearTimeout(josMitraInstallTimer);
   josMitraInstallPopup?.classList.remove('show');
@@ -883,32 +883,12 @@ function showJosMitraInstallPopup(){
   josMitraInstallTimer=setTimeout(hideJosMitraInstallPopup,10000);
 }
 document.getElementById('josMitraInstallClose')?.addEventListener('click',hideJosMitraInstallPopup);
-window.addEventListener('beforeinstallprompt',event=>{
-  event.preventDefault();
-  josMitraDeferredInstall=event;
-  if(josMitraInstallBtn)josMitraInstallBtn.textContent='Install';
-  showJosMitraInstallPopup();
-});
 if(josMitraInstallBtn){
-  josMitraInstallBtn.addEventListener('click',async()=>{
-    if(josMitraDeferredInstall){
-      const promptEvent=josMitraDeferredInstall;
-      josMitraDeferredInstall=null;
-      try{
-        await promptEvent.prompt();
-        const choice=await promptEvent.userChoice;
-        if(choice?.outcome==='accepted')hideJosMitraInstallPopup();
-        else if(josMitraInstallBtn)josMitraInstallBtn.textContent='Cara Install';
-      }catch(error){
-        console.warn('Prompt instalasi JOS Mitra:',error);
-        josMitraInstallBtn.textContent='Cara Install';
-      }
-    }else{
-      alert('Cara memasang JOS Mitra:\\n\\n1. Buka menu Chrome (⋮).\\n2. Pilih “Install app” atau “Tambahkan ke layar utama”.\\n3. Ikuti konfirmasi sampai ikon JOS Mitra muncul di layar HP.\\n\\nJika pilihan belum tersedia, buka alamat Portal Mitra melalui Google Chrome dan pastikan koneksi internet aktif.');
-    }
+  josMitraInstallBtn.addEventListener('click',()=>{
+    hideJosMitraInstallPopup();
+    window.location.href=josMitraApkUrl;
   });
 }
-window.addEventListener('appinstalled',hideJosMitraInstallPopup);
 if(!josMitraStandalone()){
   window.addEventListener('load',()=>setTimeout(showJosMitraInstallPopup,1800),{once:true});
 }

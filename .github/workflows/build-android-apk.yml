@@ -38,3 +38,13 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish stable APK download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: JOS Mitra Android APK (Latest)
+          body: APK resmi JOS Mitra terbaru. Unduh app-debug.apk untuk memasang aplikasi Android.
+          files: app/build/outputs/apk/debug/app-debug.apk
+          overwrite_files: true
+          make_latest: true

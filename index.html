@@ -911,7 +911,14 @@ document.getElementById('josMitraInstallClose')?.addEventListener('click',hideJo
 if(josMitraInstallBtn){
   josMitraInstallBtn.addEventListener('click',()=>{
     hideJosMitraInstallPopup();
-    window.location.href=josMitraApkUrl;
+    const downloadLink=document.createElement('a');
+    downloadLink.href=josMitraApkUrl;
+    downloadLink.target='_blank';
+    downloadLink.rel='noopener';
+    downloadLink.download='JOS-Mitra.apk';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
   });
 }
 if(!josMitraStandalone()){

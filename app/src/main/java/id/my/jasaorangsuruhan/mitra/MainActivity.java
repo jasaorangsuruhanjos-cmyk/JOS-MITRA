@@ -15,6 +15,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.core.app.NotificationManagerCompat;
+
 import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends Activity {
@@ -34,7 +36,12 @@ public class MainActivity extends Activity {
         settings.setDatabaseEnabled(true);
         settings.setGeolocationEnabled(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                installNativePushBridge();
+            }
+        });
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
                 if (hasLocationPermission()) {
@@ -83,6 +90,39 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void installNativePushBridge() {
+        if (webView == null) return;
+        String script = "(function(){"
+            + "if(!window.JOSAndroid)return;"
+            + "window.__josRegisterNativeFcmToken=async function(token){"
+            + "if(!token||!window.db||!window.currentUser||!window.currentUser.id)return false;"
+            + "const msg=document.getElementById('mitraPushMsg');"
+            + "try{const result=await window.db.from('jos_mitra_fcm_tokens').upsert({user_id:window.currentUser.id,token:token,platform:'android',app_id:'id.my.jasaorangsuruhan.mitra',updated_at:new Date().toISOString()},{onConflict:'token'});"
+            + "if(result.error)throw result.error;"
+            + "if(msg){msg.textContent='✓ Notifikasi Android aktif. Perangkat berhasil terdaftar.';msg.classList.remove('err');}"
+            + "return true;}catch(e){if(msg){msg.textContent='Gagal mendaftarkan perangkat: '+(e.message||'Kesalahan server');msg.classList.add('err');}return false;}"
+            + "};"
+            + "window.josAndroidFcmToken=function(token){window.__josNativeFcmToken=token;window.__josRegisterNativeFcmToken(token);};"
+            + "window.josHandleEnableWebPush=async function(){"
+            + "const b=document.getElementById('mitraEnablePush'),m=document.getElementById('mitraPushMsg');"
+            + "if(b){b.disabled=true;b.textContent='Mengaktifkan...';}"
+            + "if(m){m.textContent='Meminta izin notifikasi Android...';m.classList.remove('err');}"
+            + "try{JOSAndroid.requestNotifications();const until=Date.now()+25000;let token='';"
+            + "while(Date.now()<until){if(!JOSAndroid.areNotificationsEnabled()) {await new Promise(r=>setTimeout(r,400));continue;}"
+            + "token=JOSAndroid.getFcmToken()||'';if(token)break;await new Promise(r=>setTimeout(r,500));}"
+            + "if(!JOSAndroid.areNotificationsEnabled())throw new Error('Izin notifikasi Android belum diizinkan.');"
+            + "if(!token)throw new Error('Token Firebase belum tersedia. Periksa konfigurasi Firebase pada APK.');"
+            + "if(!window.currentUser||!window.currentUser.id)throw new Error('Sesi mitra belum siap. Silakan login ulang.');"
+            + "if(!await window.__josRegisterNativeFcmToken(token))throw new Error('Token belum berhasil didaftarkan ke server.');"
+            + "if(b)b.textContent='✓ Notifikasi HP aktif';"
+            + "}catch(e){if(m){m.textContent='Gagal mengaktifkan notifikasi: '+(e.message||'Kesalahan tidak diketahui');m.classList.add('err');}if(b)b.textContent='Aktifkan notifikasi di HP';}"
+            + "finally{if(b)b.disabled=false;}"
+            + "};"
+            + "const saved=JOSAndroid.getFcmToken();if(saved)window.josAndroidFcmToken(saved);"
+            + "})();";
+        webView.evaluateJavascript(script, null);
+    }
+
     private void notifyWebToken(String token) {
         if (webView == null) return;
         String safe = org.json.JSONObject.quote(token);
@@ -108,6 +148,9 @@ public class MainActivity extends Activity {
             return getSharedPreferences("jos_mitra", MODE_PRIVATE).getString("fcm_token", "");
         }
         @JavascriptInterface public void requestNotifications() { runOnUiThread(() -> requestNotificationPermissionIfNeeded()); }
+        @JavascriptInterface public boolean areNotificationsEnabled() {
+            return NotificationManagerCompat.from(MainActivity.this).areNotificationsEnabled();
+        }
         @JavascriptInterface public void openAppSettings() {
             runOnUiThread(() -> startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                 Uri.parse("package:" + getPackageName()))));

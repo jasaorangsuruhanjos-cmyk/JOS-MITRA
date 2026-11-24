@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.GeolocationPermissions;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient.FileChooserParams;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -25,6 +27,8 @@ public class MainActivity extends Activity {
     private WebView webView;
     private GeolocationPermissions.Callback geoCallback;
     private String geoOrigin;
+    private static final int REQUEST_FILE_CHOOSER = 4104;
+    private ValueCallback<Uri[]> fileChooserCallback;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,6 +47,20 @@ public class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+                if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
+                fileChooserCallback = filePathCallback;
+                try {
+                    Intent chooser = fileChooserParams.createIntent();
+                    startActivityForResult(Intent.createChooser(chooser, "Pilih file dari HP"), REQUEST_FILE_CHOOSER);
+                    return true;
+                } catch (Exception e) {
+                    fileChooserCallback = null;
+                    filePathCallback.onReceiveValue(null);
+                    Toast.makeText(MainActivity.this, "Tidak dapat membuka pemilih file.", Toast.LENGTH_LONG).show();
+                    return false;
+                }
+            }
             @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
                 if (hasLocationPermission()) {
                     callback.invoke(origin, true, false);
@@ -77,6 +95,24 @@ public class MainActivity extends Activity {
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_NOTIFICATIONS);
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_FILE_CHOOSER && fileChooserCallback != null) {
+            Uri[] results = null;
+            if (resultCode == RESULT_OK && data != null) {
+                Uri result = data.getData();
+                if (result != null) results = new Uri[]{result};
+                if (data.getClipData() != null) {
+                    android.content.ClipData clip = data.getClipData();
+                    results = new Uri[clip.getItemCount()];
+                    for (int i = 0; i < clip.getItemCount(); i++) results[i] = clip.getItemAt(i).getUri();
+                }
+            }
+            fileChooserCallback.onReceiveValue(results);
+            fileChooserCallback = null;
         }
     }
 

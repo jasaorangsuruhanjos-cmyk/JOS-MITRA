@@ -615,10 +615,13 @@ const MITRA_NOTIFY_KEY='jos-mitra-booking-notify-v2';
 const MITRA_AUDIO_DB='jos-mitra-audio-db';
 let notificationAudioContext=null;
 function getMitraNotifySettings(){
-  try{return Object.assign({enabled:true,tone:'bell'},JSON.parse(localStorage.getItem(MITRA_NOTIFY_KEY)||'{}'));}
-  catch(e){return {enabled:true,tone:'bell'};}
+  try{
+    const saved=JSON.parse(localStorage.getItem(MITRA_NOTIFY_KEY)||'{}');
+    const tone=['jos','custom'].includes(saved.tone)?saved.tone:'jos';
+    return {enabled:saved.enabled!==false,tone};
+  }catch(e){return {enabled:true,tone:'jos'};}
 }
-function getSavedNotificationTone(){return getMitraNotifySettings().tone||'bell';}
+function getSavedNotificationTone(){return getMitraNotifySettings().tone||'jos';}
 function openMitraAudioDB(){
   return new Promise((resolve,reject)=>{
     const req=indexedDB.open(MITRA_AUDIO_DB,1);
@@ -666,29 +669,26 @@ function setMitraNotifyMessage(text,bad=false){
 }
 async function playNotificationTone(){
   const settings=getMitraNotifySettings();
-  if(settings.tone==='custom'){
-    try{
+  try{
+    let audio;
+    let url;
+    if(settings.tone==='custom'){
       const saved=await getMitraAudio();
       if(!saved?.blob){setMitraNotifyMessage('Pilih dan simpan file audio terlebih dahulu.',true);return;}
-      const url=URL.createObjectURL(saved.blob),audio=new Audio(url);
-      audio.volume=1.0;audio.preload='auto';
-      audio.onended=()=>URL.revokeObjectURL(url);await audio.play();return;
-    }catch(e){setMitraNotifyMessage('File audio tidak dapat diputar.',true);return;}
+      url=URL.createObjectURL(saved.blob);
+    }else{
+      url=new URL('./jos-order-alert.mp3',window.location.href).href;
+    }
+    audio=new Audio(url);
+    audio.volume=1.0;
+    audio.preload='auto';
+    audio.setAttribute('playsinline','');
+    audio.onended=()=>{if(settings.tone==='custom')URL.revokeObjectURL(url);};
+    await audio.play();
+  }catch(e){
+    setMitraNotifyMessage('Nada notifikasi tidak dapat diputar. Periksa volume HP.',true);
+    console.warn('Nada notifikasi JOS:',e);
   }
-  try{
-    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-    notificationAudioContext=notificationAudioContext||new AC();
-    if(notificationAudioContext.state==='suspended')await notificationAudioContext.resume();
-    const ctx=notificationAudioContext,now=ctx.currentTime;
-    const patterns={bell:[[880,0,.18],[1175,.22,.28],[1568,.54,.42]],chime:[[659,0,.22],[880,.18,.25],[1318,.4,.42]],alert:[[880,0,.13],[880,.2,.13],[1175,.4,.35]],soft:[[523,0,.3],[659,.28,.38]],phone:[[740,0,.22],[740,.32,.22],[880,.68,.38],[740,1.15,.22],[880,1.48,.42]]};
-    (patterns[settings.tone]||patterns.bell).forEach(([freq,delay,duration])=>{
-      const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type=settings.tone==='soft'?'sine':'triangle';
-      osc.frequency.setValueAtTime(freq,now+delay);gain.gain.setValueAtTime(.0001,now+delay);
-      gain.gain.exponentialRampToValueAtTime(.48,now+delay+.025);
-      gain.gain.exponentialRampToValueAtTime(.0001,now+delay+duration);
-      osc.connect(gain);gain.connect(ctx.destination);osc.start(now+delay);osc.stop(now+delay+duration+.03);
-    });
-  }catch(e){console.warn('Nada notifikasi JOS:',e);}
 }
 async function testNotificationTone(){
   const tone=$('mitraToneSelect').value;
@@ -700,7 +700,7 @@ async function testNotificationTone(){
 function initMitraNotifySettings(){
   const settings=getMitraNotifySettings();
   $('mitraNotifyEnabled').value=settings.enabled?'on':'off';
-  $('mitraToneSelect').value=settings.tone||'bell';
+  $('mitraToneSelect').value=settings.tone||'jos';
   $('mitraCustomAudioField').classList.toggle('hidden',settings.tone!=='custom');
   const savedSettings=!!localStorage.getItem(MITRA_NOTIFY_KEY);
   $('mitraNotifyEditor').classList.toggle('hidden',savedSettings);
@@ -756,7 +756,7 @@ function renderAccount(){const p=mitra||{};const photo=p.foto_profil_url?`<img c
 <button class="btn secondary hidden" id="mitraEditNotify" type="button">⚙️ Ubah pengaturan</button>
 <div id="mitraNotifyEditor">
 <div class="field"><label for="mitraNotifyEnabled">Notifikasi pesanan baru</label><select id="mitraNotifyEnabled"><option value="on">Aktif</option><option value="off">Nonaktif</option></select></div>
-<div class="field"><label for="mitraToneSelect">Pilih nada notifikasi</label><select id="mitraToneSelect"><option value="bell">Bell</option><option value="chime">Chime</option><option value="alert">Alert</option><option value="soft">Lembut</option><option value="phone">Nada telepon</option><option value="custom">Gunakan audio dari ponsel</option></select></div>
+<div class="field"><label for="mitraToneSelect">Pilih nada notifikasi</label><select id="mitraToneSelect"><option value="jos">Nada bawaan JOS</option><option value="custom">Gunakan audio dari ponsel</option></select></div>
 <div id="mitraCustomAudioField" class="field hidden"><label for="mitraCustomAudio">Pilih file audio (MP3, WAV, atau audio lain)</label><input id="mitraCustomAudio" type="file" accept="audio/*"><div id="mitraCustomAudioName" class="sub">Belum ada file audio dipilih.</div><small class="sub">Maksimal 8 MB. File disimpan di browser/perangkat ini.</small></div>
 <div class="row"><button class="btn secondary" id="mitraTestTone" type="button">Tes nada</button><button class="btn" id="mitraSaveNotify" type="button">Simpan pengaturan</button></div>
 <div id="mitraNotifyMsg" class="msg"></div>

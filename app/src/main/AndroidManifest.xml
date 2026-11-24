@@ -8,6 +8,8 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@drawable/jos_mitra"
+        android:roundIcon="@drawable/jos_mitra"
         android:label="JOS Mitra"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">

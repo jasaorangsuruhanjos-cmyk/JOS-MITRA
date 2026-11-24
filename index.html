@@ -600,6 +600,19 @@ async function josHandleEnableWebPush(){
   if(button){button.disabled=true;button.textContent='Mengaktifkan...';}
   if(messageBox){messageBox.textContent='Meminta izin dan mendaftarkan perangkat...';messageBox.classList.remove('err');}
   try{
+    if(window.JOSAndroid){
+      if(!window.JOSAndroid.areNotificationsEnabled()){
+        window.JOSAndroid.requestNotifications();
+        if(messageBox)messageBox.textContent='Silakan izinkan notifikasi pada dialog Android. Status akan diperiksa kembali.';
+        setTimeout(()=>josSyncPushButtonState(),1500);
+        return;
+      }
+      const token=String(window.JOSAndroid.getFcmToken()||'');
+      if(!token)throw new Error('Token perangkat belum tersedia. Pastikan HP terhubung internet lalu coba lagi.');
+      if(messageBox)messageBox.textContent='✓ Notifikasi Android aktif. Perangkat berhasil terdaftar.';
+      if(button)button.textContent='✓ Notifikasi HP aktif';
+      return;
+    }
     await josEnableWebPush();
     if(messageBox)messageBox.textContent='✓ Notifikasi HP berhasil diaktifkan dan perangkat terdaftar.';
     if(button)button.textContent='✓ Notifikasi HP aktif';
@@ -612,6 +625,18 @@ async function josHandleEnableWebPush(){
 }
 
 async function josSyncPushButtonState(){
+  if(window.JOSAndroid){
+    const button=$('mitraEnablePush'), messageBox=$('mitraPushMsg');
+    if(!button)return;
+    try{
+      const enabled=!!window.JOSAndroid.areNotificationsEnabled();
+      const token=String(window.JOSAndroid.getFcmToken()||'');
+      if(enabled&&token){button.textContent='✓ Notifikasi HP aktif';if(messageBox)messageBox.textContent='✓ Notifikasi Android aktif. Perangkat berhasil terdaftar.';}
+      else{button.textContent='🔔 Aktifkan notifikasi di HP';if(messageBox)messageBox.textContent=enabled?'Token perangkat sedang disiapkan. Tekan tombol untuk memeriksa kembali.':'Izin notifikasi Android belum aktif.';}
+    }catch(error){console.warn('Status notifikasi Android JOS:',error);}
+    return;
+  }
+
   const button=$('mitraEnablePush');
   const messageBox=$('mitraPushMsg');
   if(!button)return;
@@ -872,7 +897,7 @@ let josMitraDeferredInstall=null;
 let josMitraInstallTimer=null;
 const josMitraInstallPopup=document.getElementById('josMitraInstallPopup');
 const josMitraInstallBtn=document.getElementById('josMitraInstallBtn');
-const josMitraStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+const josMitraStandalone=()=>!!window.JOSAndroid||window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
 function hideJosMitraInstallPopup(){
   clearTimeout(josMitraInstallTimer);
   josMitraInstallPopup?.classList.remove('show');

@@ -611,6 +611,51 @@ async function josHandleEnableWebPush(){
   }
 }
 
+async function josSyncPushButtonState(){
+  const button=$('mitraEnablePush');
+  const messageBox=$('mitraPushMsg');
+  if(!button)return;
+  try{
+    if(!('Notification'in window)||!('serviceWorker'in navigator)||!('PushManager'in window)){
+      button.textContent='Notifikasi tidak didukung perangkat';
+      button.disabled=true;
+      return;
+    }
+    if(Notification.permission==='denied'){
+      button.textContent='Izin notifikasi diblokir';
+      if(messageBox)messageBox.textContent='Aktifkan izin notifikasi JOS Mitra melalui pengaturan situs/browser.';
+      return;
+    }
+    if(Notification.permission!=='granted'){
+      button.textContent='🔔 Aktifkan notifikasi di HP';
+      return;
+    }
+    const registration=await navigator.serviceWorker.ready;
+    const subscription=await registration.pushManager.getSubscription();
+    if(!subscription){
+      button.textContent='🔔 Aktifkan notifikasi di HP';
+      return;
+    }
+    if(!currentUser?.id){
+      button.textContent='🔔 Aktifkan notifikasi di HP';
+      return;
+    }
+    const {data,error}=await db.from('jos_mitra_push_subscriptions')
+      .select('id').eq('user_id',currentUser.id)
+      .eq('endpoint',subscription.endpoint).maybeSingle();
+    if(error)throw error;
+    if(!data?.id){
+      await josEnableWebPush();
+    }
+    button.textContent='✓ Notifikasi HP aktif';
+    if(messageBox)messageBox.textContent='✓ Izin notifikasi aktif dan perangkat sudah terdaftar.';
+  }catch(error){
+    console.warn('Sinkronisasi status notifikasi JOS:',error);
+    button.textContent='🔔 Aktifkan notifikasi di HP';
+    if(messageBox)messageBox.textContent='Status notifikasi belum dapat diverifikasi. Tekan tombol untuk mencoba lagi.';
+  }
+}
+
 const MITRA_NOTIFY_KEY='jos-mitra-booking-notify-v2';
 const MITRA_AUDIO_DB='jos-mitra-audio-db';
 let notificationAudioContext=null;
@@ -762,7 +807,7 @@ function renderAccount(){const p=mitra||{};const photo=p.foto_profil_url?`<img c
 <div id="mitraNotifyMsg" class="msg"></div>
 </div>
 <div class="notice" style="margin-top:12px">Catatan: aktifkan izin notifikasi dan pastikan perangkat terhubung ke internet. Pengiriman saat aplikasi tertutup juga memerlukan layanan pengiriman push di server JOS yang sudah aktif.</div>
-</div></div>`;initMitraNotifySettings();
+</div></div>`;initMitraNotifySettings();josSyncPushButtonState();
   $('mitraPayoutMethod').value=p.metode_pencairan||'';
   $('mitraPayoutName').value=p.nama_pemilik_pencairan||'';
   $('mitraPayoutBank').value=p.bank_pencairan||'';

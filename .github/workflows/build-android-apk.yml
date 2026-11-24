@@ -15,6 +15,10 @@ jobs:
     steps:
       - name: Checkout staging source
         uses: actions/checkout@v4
+      - name: Download JOS Mitra launcher icon
+        run: |
+          mkdir -p app/src/main/res/drawable-nodpi
+          curl -fsSL https://raw.githubusercontent.com/jasaorangsuruhanjos-cmyk/JOS-MITRA/staging/android-apk-permissions/jos-mitra-512.png -o app/src/main/res/drawable-nodpi/jos_mitra.png
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:

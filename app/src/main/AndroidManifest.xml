@@ -13,6 +13,7 @@
         android:label="JOS Mitra"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="jos_mitra_orders_v3" />
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"

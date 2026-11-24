@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "764656931996",
+    "project_id": "jos-booking-online",
+    "storage_bucket": "jos-booking-online.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:764656931996:android:5a300c7c33bf6d3a398959",
+        "android_client_info": {
+          "package_name": "id.my.jasaorangsuruhan.mitra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCcCKVeDOPgu9tKipbtLv65BjoheHdDQWw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

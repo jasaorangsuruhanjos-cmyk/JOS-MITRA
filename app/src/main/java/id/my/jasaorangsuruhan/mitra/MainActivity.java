@@ -46,6 +46,14 @@ public class MainActivity extends Activity {
                 super.onPageFinished(view, url);
                 installNativePushBridge();
             }
+
+            @Override public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                return handleMapsNavigation(request.getUrl().toString());
+            }
+
+            @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return handleMapsNavigation(url);
+            }
         });
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
@@ -80,6 +88,85 @@ public class MainActivity extends Activity {
             getSharedPreferences("jos_mitra", MODE_PRIVATE).edit().putString("fcm_token", token).apply();
             notifyWebToken(token);
         });
+    }
+
+    /**
+     * Open customer map links outside the WebView. The mitra website can return
+     * Android intent:// links for Google Maps; WebView cannot load that scheme
+     * itself and otherwise shows net::ERR_UNKNOWN_URL_SCHEME.
+     */
+    private boolean handleMapsNavigation(String rawUrl) {
+        if (rawUrl == null || rawUrl.isEmpty()) return false;
+
+        try {
+            if (rawUrl.startsWith("intent://")) {
+                Intent mapIntent = Intent.parseUri(rawUrl, Intent.URI_INTENT_SCHEME);
+                Uri mapUri = mapIntent.getData();
+                if (mapUri == null || !isGoogleMapsUri(mapUri)) return true;
+
+                String fallback = mapIntent.getStringExtra("browser_fallback_url");
+                mapIntent.addCategory(Intent.CATEGORY_BROWSABLE);
+                mapIntent.setComponent(null);
+                mapIntent.setPackage("com.google.android.apps.maps");
+                mapIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    startActivity(mapIntent);
+                } catch (Exception mapsNotAvailable) {
+                    openMapsFallback(fallback, mapUri);
+                }
+                return true;
+            }
+
+            Uri uri = Uri.parse(rawUrl);
+            if ("https".equalsIgnoreCase(uri.getScheme()) && isGoogleMapsUri(uri)) {
+                Intent mapIntent = new Intent(Intent.ACTION_VIEW, uri);
+                mapIntent.setPackage("com.google.android.apps.maps");
+                mapIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    startActivity(mapIntent);
+                } catch (Exception mapsNotAvailable) {
+                    openMapsFallback(null, uri);
+                }
+                return true;
+            }
+        } catch (Exception ignored) {
+            // Do not let a malformed external Maps URL crash the Mitra app.
+            try {
+                Uri uri = Uri.parse(rawUrl);
+                if (isGoogleMapsUri(uri)) {
+                    openMapsFallback(null, uri);
+                    return true;
+                }
+            } catch (Exception ignoredAgain) { }
+        }
+        return false;
+    }
+
+    private boolean isGoogleMapsUri(Uri uri) {
+        if (uri == null) return false;
+        String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+        String path = uri.getPath() == null ? "" : uri.getPath().toLowerCase();
+        return (host.equals("google.com") || host.endsWith(".google.com")) && path.startsWith("/maps")
+            || host.equals("maps.app.goo.gl") || host.equals("goo.gl") && path.startsWith("/maps");
+    }
+
+    private void openMapsFallback(String fallbackUrl, Uri originalMapUri) {
+        Uri target = null;
+        try {
+            if (fallbackUrl != null && fallbackUrl.startsWith("https://")) {
+                Uri candidate = Uri.parse(fallbackUrl);
+                if (isGoogleMapsUri(candidate)) target = candidate;
+            }
+        } catch (Exception ignored) { }
+        if (target == null) target = originalMapUri;
+
+        try {
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, target);
+            browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(browserIntent);
+        } catch (Exception e) {
+            Toast.makeText(this, "Google Maps tidak dapat dibuka. Periksa aplikasi Google Maps atau browser.", Toast.LENGTH_LONG).show();
+        }
     }
 
     private boolean hasLocationPermission() {
